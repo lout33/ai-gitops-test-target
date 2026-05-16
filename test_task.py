@@ -77,3 +77,31 @@ def test_mark_done(tmp_path, monkeypatch):
     mark_done(1)
     tasks = json.loads(task_file.read_text())
     assert tasks[0]["done"] is True
+
+
+def test_load_config_creates_default(tmp_path, monkeypatch):
+    """Test config creation when file is missing."""
+    from utils import paths
+    import task as task_mod
+
+    fake_config = tmp_path / "config.yaml"
+    monkeypatch.setattr(paths, "get_config_path", lambda: fake_config)
+    monkeypatch.setattr(task_mod, "get_config_path", lambda: fake_config)
+
+    result = task_mod.load_config()
+    assert fake_config.exists()
+    assert "task-cli" in result
+
+
+def test_load_config_reads_existing(tmp_path, monkeypatch):
+    """Test config is read when file exists."""
+    from utils import paths
+    import task as task_mod
+
+    fake_config = tmp_path / "config.yaml"
+    fake_config.write_text("custom: true")
+    monkeypatch.setattr(paths, "get_config_path", lambda: fake_config)
+    monkeypatch.setattr(task_mod, "get_config_path", lambda: fake_config)
+
+    result = task_mod.load_config()
+    assert result == "custom: true"
