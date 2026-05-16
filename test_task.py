@@ -77,3 +77,80 @@ def test_mark_done(tmp_path, monkeypatch):
     mark_done(1)
     tasks = json.loads(task_file.read_text())
     assert tasks[0]["done"] is True
+
+
+def test_load_config_creates_default(tmp_path, monkeypatch):
+    """Test config creation when file is missing."""
+    from utils import paths
+    import task as task_mod
+
+    fake_config = tmp_path / "config.yaml"
+    monkeypatch.setattr(paths, "get_config_path", lambda: fake_config)
+    monkeypatch.setattr(task_mod, "get_config_path", lambda: fake_config)
+
+    result = task_mod.load_config()
+    assert fake_config.exists()
+    assert "task-cli" in result
+
+
+def test_load_config_reads_existing(tmp_path, monkeypatch):
+    """Test config is read when file exists."""
+    from utils import paths
+    import task as task_mod
+
+    fake_config = tmp_path / "config.yaml"
+    fake_config.write_text("custom: true")
+    monkeypatch.setattr(paths, "get_config_path", lambda: fake_config)
+    monkeypatch.setattr(task_mod, "get_config_path", lambda: fake_config)
+
+    result = task_mod.load_config()
+    assert result == "custom: true"
+
+import io
+
+
+def test_add_task_json_output(tmp_path, monkeypatch):
+    """Test add task with --json flag."""
+    import commands.add as add_mod
+    task_file = tmp_path / "tasks.json"
+    monkeypatch.setattr(add_mod, "get_tasks_file", lambda: task_file)
+
+    buf = io.StringIO()
+    monkeypatch.setattr("sys.stdout", buf)
+    add_task("json task", json_output=True)
+    output = buf.getvalue().strip()
+    data = json.loads(output)
+    assert data["description"] == "json task"
+    assert data["done"] is False
+    assert "id" in data
+
+
+def test_list_tasks_json_output(tmp_path, monkeypatch):
+    """Test list tasks with --json flag."""
+    import commands.list as list_mod
+    task_file = tmp_path / "tasks.json"
+    task_file.write_text(json.dumps([{"id": 1, "description": "x", "done": False}]))
+    monkeypatch.setattr(list_mod, "get_tasks_file", lambda: task_file)
+
+    buf = io.StringIO()
+    monkeypatch.setattr("sys.stdout", buf)
+    list_mod.list_tasks(json_output=True)
+    output = buf.getvalue().strip()
+    data = json.loads(output)
+    assert "tasks" in data
+    assert len(data["tasks"]) == 1
+
+
+def test_mark_done_json_output(tmp_path, monkeypatch):
+    """Test mark done with --json flag."""
+    import commands.done as done_mod
+    task_file = tmp_path / "tasks.json"
+    task_file.write_text(json.dumps([{"id": 1, "description": "x", "done": False}]))
+    monkeypatch.setattr(done_mod, "get_tasks_file", lambda: task_file)
+
+    buf = io.StringIO()
+    monkeypatch.setattr("sys.stdout", buf)
+    done_mod.mark_done(1, json_output=True)
+    output = buf.getvalue().strip()
+    data = json.loads(output)
+    assert data["done"] is True

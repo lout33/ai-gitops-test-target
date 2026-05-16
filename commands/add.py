@@ -5,7 +5,7 @@ from utils.paths import get_tasks_file
 from utils.validation import validate_description
 
 
-def add_task(description):
+def add_task(description, json_output=False):
     """Add a new task."""
     description = validate_description(description)
 
@@ -20,4 +20,8 @@ def add_task(description):
     tasks.append({"id": task_id, "description": description, "done": False})
 
     tasks_file.write_text(json.dumps(tasks, indent=2))
-    print(f"Added task {task_id}: {description}")
+
+    if json_output:
+        print(json.dumps({"id": task_id, "description": description, "done": False}))
+    else:
+        print(f"Added task {task_id}: {description}")
